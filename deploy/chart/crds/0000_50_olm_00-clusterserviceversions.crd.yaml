@@ -8698,6 +8698,8 @@ spec:
                     containerPort:
                       type: integer
                       format: int32
+                    conversionCrd:
+                      type: string
                     deploymentName:
                       type: string
                     failurePolicy:
