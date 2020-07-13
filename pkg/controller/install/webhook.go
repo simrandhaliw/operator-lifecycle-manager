@@ -101,6 +101,31 @@ func (i *StrategyDeploymentInstaller) createOrUpdateMutatingWebhook(ogNamespacel
 			log.Errorf("Webhooks: Error creating MutatingWebhookConfiguration: %v", err)
 			return err
 		}
+
+		// check if webhook has ConversionCrd field set, if true get crd of cluster and configure to use webhook effectively
+		crd, err := i.strategyClient.GetOpLister().APIExtensionsV1().CustomResourceDefinitionLister().Get(desc.ConversionCrd)
+		//crd, err := i.strategyClient.GetOpLister().ApiextensionsV1beta1().CustomResourceDefinitionLister().Get(desc.ConversionCrd)
+		if err != nil && webhook.Namespace != "AllNamespaces" {
+			return fmt.Errorf("crd %q not found: %s or Namespace is not AllNamespaces", desc.ConversionCrd, err.Error())
+		}
+		log.Info("Found conversionCrd")
+
+		// create crd object
+
+		crd.Spec.Conversion.Strategy = "Webhook"
+		crd.Spec.Conversion.Webhook.ClientConfig.CABundle = 
+		// crd.Spec.Conversion.Webhook.ClientConfig.Service = &apiregistrationv1.ServiceReference{
+		// 	Namespace: i.owner.GetNamespace(),
+		// 	Name:      ServiceName(desc.DeploymentName),
+		// 	Port:      &containerPort,
+		// }
+		// crd.Spec.Conversion.Webhook.ClientConfig.Service = &admissionregistrationv1.ValidatingWebhook.
+		// 	Namespace: i.owner.GetNamespace(),
+		// 	Name:      ServiceName(desc.DeploymentName),
+		// 	Path:      "/convert",
+		// }
+		// crd.Spec.Conversion.Webhook.ClientConfig.CABundle = ""
+
 		return nil
 	}
 	for _, webhook := range existingWebhooks.Items {
