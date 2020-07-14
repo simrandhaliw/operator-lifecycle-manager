@@ -58,6 +58,7 @@ func (i *StrategyDeploymentInstaller) createOrUpdateWebhook(caPEM []byte, desc v
 	if err != nil || len(operatorGroups) != 1 {
 		return fmt.Errorf("Error retrieving OperatorGroup info")
 	}
+
 	ogNamespacelabelSelector, err := operatorGroups[0].NamespaceLabelSelector()
 	if err != nil {
 		return err
@@ -68,7 +69,6 @@ func (i *StrategyDeploymentInstaller) createOrUpdateWebhook(caPEM []byte, desc v
 		i.createOrUpdateValidatingWebhook(ogNamespacelabelSelector, caPEM, desc)
 	case v1alpha1.MutatingAdmissionWebhook:
 		i.createOrUpdateMutatingWebhook(ogNamespacelabelSelector, caPEM, desc)
-
 	}
 	return nil
 }
@@ -77,7 +77,6 @@ func (i *StrategyDeploymentInstaller) createOrUpdateMutatingWebhook(ogNamespacel
 	webhookLabels := ownerutil.OwnerLabel(i.owner, i.owner.GetObjectKind().GroupVersionKind().Kind)
 	webhookLabels[WebhookDescKey] = desc.GenerateName
 	webhookSelector := labels.SelectorFromSet(webhookLabels).String()
-
 	existingWebhooks, err := i.strategyClient.GetOpClient().KubernetesInterface().AdmissionregistrationV1().MutatingWebhookConfigurations().List(context.TODO(), metav1.ListOptions{LabelSelector: webhookSelector})
 	if err != nil {
 		return err
@@ -96,35 +95,12 @@ func (i *StrategyDeploymentInstaller) createOrUpdateMutatingWebhook(ogNamespacel
 			},
 		}
 		addWebhookLabels(&webhook, desc)
-
 		if _, err := i.strategyClient.GetOpClient().KubernetesInterface().AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{}); err != nil {
 			log.Errorf("Webhooks: Error creating MutatingWebhookConfiguration: %v", err)
 			return err
 		}
 
-		// check if webhook has ConversionCrd field set, if true get crd of cluster and configure to use webhook effectively
-		crd, err := i.strategyClient.GetOpLister().APIExtensionsV1().CustomResourceDefinitionLister().Get(desc.ConversionCrd)
-		//crd, err := i.strategyClient.GetOpLister().ApiextensionsV1beta1().CustomResourceDefinitionLister().Get(desc.ConversionCrd)
-		if err != nil && webhook.Namespace != "AllNamespaces" {
-			return fmt.Errorf("crd %q not found: %s or Namespace is not AllNamespaces", desc.ConversionCrd, err.Error())
-		}
-		log.Info("Found conversionCrd")
-
-		// create crd object
-
-		crd.Spec.Conversion.Strategy = "Webhook"
-		crd.Spec.Conversion.Webhook.ClientConfig.CABundle = 
-		// crd.Spec.Conversion.Webhook.ClientConfig.Service = &apiregistrationv1.ServiceReference{
-		// 	Namespace: i.owner.GetNamespace(),
-		// 	Name:      ServiceName(desc.DeploymentName),
-		// 	Port:      &containerPort,
-		// }
-		// crd.Spec.Conversion.Webhook.ClientConfig.Service = &admissionregistrationv1.ValidatingWebhook.
-		// 	Namespace: i.owner.GetNamespace(),
-		// 	Name:      ServiceName(desc.DeploymentName),
-		// 	Path:      "/convert",
-		// }
-		// crd.Spec.Conversion.Webhook.ClientConfig.CABundle = ""
+		createOrUpdateConversionCrdInMutatingWebhook(desc, webhook, i)
 
 		return nil
 	}
@@ -140,9 +116,53 @@ func (i *StrategyDeploymentInstaller) createOrUpdateMutatingWebhook(ogNamespacel
 			log.Warnf("could not update MutatingWebhookConfiguration %s", webhook.GetName())
 			return err
 		}
+
+		createOrUpdateConversionCrdInMutatingWebhook(desc, webhook, i)
 	}
 
 	return nil
+}
+
+func createOrUpdateConversionCrdInMutatingWebhook(desc v1alpha1.WebhookDescription, webhook admissionregistrationv1.MutatingWebhookConfiguration, i *StrategyDeploymentInstaller) {
+	// check if webhook has ConversionCrd field set, if true get crd of cluster and configure to use webhook effectively
+	if desc.ConversionCrd != "" {
+		crd, err := i.strategyClient.GetOpLister().APIExtensionsV1().CustomResourceDefinitionLister().Get(desc.ConversionCrd)
+		if err != nil {
+			log.Info("Crd not found %s, error: %s", desc.ConversionCrd, err.Error())
+		}
+
+		log.Info("Found conversionCrd %s", desc.ConversionCrd)
+		path := "/convert"
+		crd.Spec.Conversion.Strategy = "Webhook"
+		crd.Spec.Conversion.Webhook.ClientConfig.CABundle = webhook.Webhooks[0].ClientConfig.CABundle
+		crd.Spec.Conversion.Webhook.ClientConfig.Service.Name = webhook.Webhooks[0].ClientConfig.Service.Name
+		crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace = webhook.Webhooks[0].ClientConfig.Service.Namespace
+		crd.Spec.Conversion.Webhook.ClientConfig.Service.Path = &path
+		crd.Spec.PreserveUnknownFields = false
+	} else {
+		log.Info("conversionCrd not found")
+	}
+}
+
+func createOrUpdateConversionCrdInValidatingWebhook(desc v1alpha1.WebhookDescription, webhook admissionregistrationv1.ValidatingWebhookConfiguration, i *StrategyDeploymentInstaller) {
+	// check if webhook has ConversionCrd field set, if true get crd of cluster and configure to use webhook effectively
+	if desc.ConversionCrd != "" {
+		crd, err := i.strategyClient.GetOpLister().APIExtensionsV1().CustomResourceDefinitionLister().Get(desc.ConversionCrd)
+		if err != nil {
+			log.Info("Crd not found %s, error: %s", desc.ConversionCrd, err.Error())
+		}
+
+		log.Info("Found conversionCrd %s", desc.ConversionCrd)
+		path := "/convert"
+		crd.Spec.Conversion.Strategy = "Webhook"
+		crd.Spec.Conversion.Webhook.ClientConfig.CABundle = webhook.Webhooks[0].ClientConfig.CABundle
+		crd.Spec.Conversion.Webhook.ClientConfig.Service.Name = webhook.Webhooks[0].ClientConfig.Service.Name
+		crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace = webhook.Webhooks[0].ClientConfig.Service.Namespace
+		crd.Spec.Conversion.Webhook.ClientConfig.Service.Path = &path
+		crd.Spec.PreserveUnknownFields = false
+	} else {
+		log.Info("conversionCrd not found")
+	}
 }
 
 func (i *StrategyDeploymentInstaller) createOrUpdateValidatingWebhook(ogNamespacelabelSelector *metav1.LabelSelector, caPEM []byte, desc v1alpha1.WebhookDescription) error {
@@ -173,6 +193,9 @@ func (i *StrategyDeploymentInstaller) createOrUpdateValidatingWebhook(ogNamespac
 			log.Errorf("Webhooks: Error creating ValidatingWebhookConfiguration: %v", err)
 			return err
 		}
+
+		createOrUpdateConversionCrdInValidatingWebhook(desc, webhook, i)
+
 		return nil
 	}
 	for _, webhook := range existingWebhooks.Items {
@@ -181,6 +204,8 @@ func (i *StrategyDeploymentInstaller) createOrUpdateValidatingWebhook(ogNamespac
 			desc.GetValidatingWebhook(i.owner.GetNamespace(), ogNamespacelabelSelector, caPEM),
 		}
 		addWebhookLabels(&webhook, desc)
+
+		createOrUpdateConversionCrdInValidatingWebhook(desc, webhook, i)
 
 		// Attempt an update
 		if _, err := i.strategyClient.GetOpClient().KubernetesInterface().AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), &webhook, metav1.UpdateOptions{}); err != nil {
