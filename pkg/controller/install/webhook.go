@@ -130,6 +130,7 @@ func createOrUpdateConversionCrdInMutatingWebhook(desc v1alpha1.WebhookDescripti
 		if err != nil {
 			log.Info("Crd not found %s, error: %s", desc.ConversionCrd, err.Error())
 		}
+		ctx := context.TODO()
 
 		log.Info("Found conversionCrd %s", desc.ConversionCrd)
 		path := "/convert"
@@ -139,6 +140,11 @@ func createOrUpdateConversionCrdInMutatingWebhook(desc v1alpha1.WebhookDescripti
 		crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace = webhook.Webhooks[0].ClientConfig.Service.Namespace
 		crd.Spec.Conversion.Webhook.ClientConfig.Service.Path = &path
 		crd.Spec.PreserveUnknownFields = false
+
+		_, err = i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(ctx, crd, metav1.UpdateOptions{})
+		if err != nil {
+			log.Info("Crd %s could not be updated, error: %s", desc.ConversionCrd, err.Error())
+		}
 	} else {
 		log.Info("conversionCrd not found")
 	}
@@ -151,6 +157,7 @@ func createOrUpdateConversionCrdInValidatingWebhook(desc v1alpha1.WebhookDescrip
 		if err != nil {
 			log.Info("Crd not found %s, error: %s", desc.ConversionCrd, err.Error())
 		}
+		ctx := context.TODO()
 
 		log.Info("Found conversionCrd %s", desc.ConversionCrd)
 		path := "/convert"
@@ -160,6 +167,11 @@ func createOrUpdateConversionCrdInValidatingWebhook(desc v1alpha1.WebhookDescrip
 		crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace = webhook.Webhooks[0].ClientConfig.Service.Namespace
 		crd.Spec.Conversion.Webhook.ClientConfig.Service.Path = &path
 		crd.Spec.PreserveUnknownFields = false
+
+		_, err = i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(ctx, crd, metav1.UpdateOptions{})
+		if err != nil {
+			log.Info("Crd %s could not be updated, error: %s", desc.ConversionCrd, err.Error())
+		}
 	} else {
 		log.Info("conversionCrd not found")
 	}
