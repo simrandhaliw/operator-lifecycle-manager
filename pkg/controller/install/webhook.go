@@ -141,8 +141,7 @@ func createOrUpdateConversionCrdInMutatingWebhook(desc v1alpha1.WebhookDescripti
 		crd.Spec.Conversion.Webhook.ClientConfig.Service.Path = &path
 		crd.Spec.PreserveUnknownFields = false
 
-		_, err = i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(ctx, crd, metav1.UpdateOptions{})
-		if err != nil {
+		if _, err := i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(ctx, crd, metav1.UpdateOptions{}); err != nil {
 			log.Info("Crd %s could not be updated, error: %s", desc.ConversionCrd, err.Error())
 		}
 	} else {
@@ -158,18 +157,24 @@ func createOrUpdateConversionCrdInValidatingWebhook(desc v1alpha1.WebhookDescrip
 			log.Info("Crd not found %s, error: %s", desc.ConversionCrd, err.Error())
 		}
 		ctx := context.TODO()
-
+		log.Info("Sim found conv crd")
 		log.Info("Found conversionCrd %s", desc.ConversionCrd)
-		path := "/convert"
+		log.Info("Sim 1")
+		// path := "/convert"
+		log.Info("Sim 2")
 		crd.Spec.Conversion.Strategy = "Webhook"
-		crd.Spec.Conversion.Webhook.ClientConfig.CABundle = webhook.Webhooks[0].ClientConfig.CABundle
-		crd.Spec.Conversion.Webhook.ClientConfig.Service.Name = webhook.Webhooks[0].ClientConfig.Service.Name
-		crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace = webhook.Webhooks[0].ClientConfig.Service.Namespace
-		crd.Spec.Conversion.Webhook.ClientConfig.Service.Path = &path
-		crd.Spec.PreserveUnknownFields = false
-
-		_, err = i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(ctx, crd, metav1.UpdateOptions{})
-		if err != nil {
+		log.Info("Sim 3")
+		//crd.Spec.Conversion.Webhook.ClientConfig.CABundle = webhook.Webhooks[0].ClientConfig.CABundle
+		log.Info("Sim 4")
+		//crd.Spec.Conversion.Webhook.ClientConfig.Service.Name = webhook.Webhooks[0].ClientConfig.Service.Name
+		log.Info("Sim 5")
+		//crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace = webhook.Webhooks[0].ClientConfig.Service.Namespace
+		log.Info("Sim 6")
+		// crd.Spec.Conversion.Webhook.ClientConfig.Service.Path = &path
+		log.Info("Sim 7")
+		//crd.Spec.PreserveUnknownFields = false
+		log.Info("Sim 8")
+		if _, err := i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(ctx, crd, metav1.UpdateOptions{}); err != nil {
 			log.Info("Crd %s could not be updated, error: %s", desc.ConversionCrd, err.Error())
 		}
 	} else {
