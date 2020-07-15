@@ -100,7 +100,7 @@ func (i *StrategyDeploymentInstaller) createOrUpdateMutatingWebhook(ogNamespacel
 			return err
 		}
 
-		createOrUpdateConversionCrdInMutatingWebhook(desc, webhook, i)
+		createOrUpdateConversionCrd(desc, webhook.Webhooks[0].ClientConfig, i)
 
 		return nil
 	}
@@ -117,39 +117,13 @@ func (i *StrategyDeploymentInstaller) createOrUpdateMutatingWebhook(ogNamespacel
 			return err
 		}
 
-		createOrUpdateConversionCrdInMutatingWebhook(desc, webhook, i)
+		createOrUpdateConversionCrd(desc, webhook.Webhooks[0].ClientConfig, i)
 	}
 
 	return nil
 }
 
-func createOrUpdateConversionCrdInMutatingWebhook(desc v1alpha1.WebhookDescription, webhook admissionregistrationv1.MutatingWebhookConfiguration, i *StrategyDeploymentInstaller) {
-	// check if webhook has ConversionCrd field set, if true get crd of cluster and configure to use webhook effectively
-	if desc.ConversionCrd != "" {
-		crd, err := i.strategyClient.GetOpLister().APIExtensionsV1().CustomResourceDefinitionLister().Get(desc.ConversionCrd)
-		if err != nil {
-			log.Info("Crd not found %s, error: %s", desc.ConversionCrd, err.Error())
-		}
-		ctx := context.TODO()
-
-		log.Info("Found conversionCrd %s", desc.ConversionCrd)
-		path := "/convert"
-		crd.Spec.Conversion.Strategy = "Webhook"
-		crd.Spec.Conversion.Webhook.ClientConfig.CABundle = webhook.Webhooks[0].ClientConfig.CABundle
-		crd.Spec.Conversion.Webhook.ClientConfig.Service.Name = webhook.Webhooks[0].ClientConfig.Service.Name
-		crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace = webhook.Webhooks[0].ClientConfig.Service.Namespace
-		crd.Spec.Conversion.Webhook.ClientConfig.Service.Path = &path
-		crd.Spec.PreserveUnknownFields = false
-
-		if _, err := i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(ctx, crd, metav1.UpdateOptions{}); err != nil {
-			log.Info("Crd %s could not be updated, error: %s", desc.ConversionCrd, err.Error())
-		}
-	} else {
-		log.Info("conversionCrd not found")
-	}
-}
-
-func createOrUpdateConversionCrdInValidatingWebhook(desc v1alpha1.WebhookDescription, webhook admissionregistrationv1.ValidatingWebhookConfiguration, i *StrategyDeploymentInstaller) {
+func createOrUpdateConversionCrd(desc v1alpha1.WebhookDescription, clientConfig admissionregistrationv1.WebhookClientConfig, i *StrategyDeploymentInstaller) {
 	// check if webhook has ConversionCrd field set, if true get crd of cluster and configure to use webhook effectively
 	if desc.ConversionCrd != "" {
 		crd, err := i.strategyClient.GetOpLister().APIExtensionsV1().CustomResourceDefinitionLister().Get(desc.ConversionCrd)
@@ -161,22 +135,25 @@ func createOrUpdateConversionCrdInValidatingWebhook(desc v1alpha1.WebhookDescrip
 
 		path := "/convert"
 
-		crd.Spec = apiextensionsv1.CustomResourceDefinitionSpec{
-			Conversion: &apiextensionsv1.CustomResourceConversion{
+		if crd.Spec.PreserveUnknownFields == true {
+			log.Info("crd.Spec.PreserveUnknownFields must be false to let API Server call webhook to do the conversion.")
+		} else {
+			log.Info("updating crd")
+			crd.Spec.Conversion = &apiextensionsv1.CustomResourceConversion{
 				Strategy: "Webhook",
 				Webhook: &apiextensionsv1.WebhookConversion{
 					ClientConfig: &apiextensionsv1.WebhookClientConfig{
 						Service: &apiextensionsv1.ServiceReference{
-							Namespace: webhook.Webhooks[0].ClientConfig.Service.Namespace,
-							Name:      webhook.Webhooks[0].ClientConfig.Service.Name,
+							Namespace: clientConfig.Service.Namespace,
+							Name:      clientConfig.Service.Name,
 							Path:      &path,
-							Port:      webhook.Webhooks[0].ClientConfig.Service.Port,
+							Port:      clientConfig.Service.Port,
 						},
-						CABundle: webhook.Webhooks[0].ClientConfig.CABundle,
+						CABundle: clientConfig.CABundle,
 					},
+					ConversionReviewVersions: []string{"v1", "v1beta1"},
 				},
-			},
-			PreserveUnknownFields: false,
+			}
 		}
 
 		if _, err = i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), crd, metav1.UpdateOptions{}); err != nil {
@@ -217,7 +194,7 @@ func (i *StrategyDeploymentInstaller) createOrUpdateValidatingWebhook(ogNamespac
 			return err
 		}
 
-		createOrUpdateConversionCrdInValidatingWebhook(desc, webhook, i)
+		createOrUpdateConversionCrd(desc, webhook.Webhooks[0].ClientConfig, i)
 
 		return nil
 	}
@@ -228,7 +205,7 @@ func (i *StrategyDeploymentInstaller) createOrUpdateValidatingWebhook(ogNamespac
 		}
 		addWebhookLabels(&webhook, desc)
 
-		createOrUpdateConversionCrdInValidatingWebhook(desc, webhook, i)
+		createOrUpdateConversionCrd(desc, webhook.Webhooks[0].ClientConfig, i)
 
 		// Attempt an update
 		if _, err := i.strategyClient.GetOpClient().KubernetesInterface().AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), &webhook, metav1.UpdateOptions{}); err != nil {
