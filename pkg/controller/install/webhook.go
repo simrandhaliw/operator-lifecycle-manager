@@ -161,28 +161,28 @@ func createOrUpdateConversionCrdInValidatingWebhook(desc v1alpha1.WebhookDescrip
 
 		path := "/convert"
 
-		crd = &apiextensionsv1.CustomResourceDefinition{
-			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-				Conversion: &apiextensionsv1.CustomResourceConversion{
-					Strategy: "Webhook",
-					Webhook: &apiextensionsv1.WebhookConversion{
-						ClientConfig: &apiextensionsv1.WebhookClientConfig{
-							Service: &apiextensionsv1.ServiceReference{
-								Namespace: webhook.Webhooks[0].ClientConfig.Service.Namespace,
-								Name:      webhook.Webhooks[0].ClientConfig.Service.Name,
-								Path:      &path,
-								Port:      webhook.Webhooks[0].ClientConfig.Service.Port,
-							},
-							CABundle: webhook.Webhooks[0].ClientConfig.CABundle,
+		crd.Spec = apiextensionsv1.CustomResourceDefinitionSpec{
+			Conversion: &apiextensionsv1.CustomResourceConversion{
+				Strategy: "Webhook",
+				Webhook: &apiextensionsv1.WebhookConversion{
+					ClientConfig: &apiextensionsv1.WebhookClientConfig{
+						Service: &apiextensionsv1.ServiceReference{
+							Namespace: webhook.Webhooks[0].ClientConfig.Service.Namespace,
+							Name:      webhook.Webhooks[0].ClientConfig.Service.Name,
+							Path:      &path,
+							Port:      webhook.Webhooks[0].ClientConfig.Service.Port,
 						},
+						CABundle: webhook.Webhooks[0].ClientConfig.CABundle,
 					},
 				},
-				PreserveUnknownFields: false,
 			},
+			PreserveUnknownFields: false,
 		}
+
 		if _, err = i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), crd, metav1.UpdateOptions{}); err != nil {
 			log.Info("Crd %s could not be updated, error: %s", desc.ConversionCrd, err.Error())
 		}
+
 	} else {
 		log.Info("conversionCrd not found")
 	}
