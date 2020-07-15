@@ -151,7 +151,8 @@ func createOrUpdateConversionCrd(desc v1alpha1.WebhookDescription, clientConfig 
 						},
 						CABundle: clientConfig.CABundle,
 					},
-					ConversionReviewVersions: []string{"v1", "v1beta1"},
+					ConversionReviewVersions: desc.AdmissionReviewVersions,
+					// ConversionReviewVersions: []string{"v1", "v1beta1"},
 				},
 			}
 		}
