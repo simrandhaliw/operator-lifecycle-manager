@@ -8,9 +8,9 @@ import (
 	"github.com/operator-framework/api/pkg/operators/v1alpha1"
 	hashutil "github.com/operator-framework/operator-lifecycle-manager/pkg/lib/kubernetes/pkg/util/hash"
 	"github.com/operator-framework/operator-lifecycle-manager/pkg/lib/ownerutil"
-
 	log "github.com/sirupsen/logrus"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -156,25 +156,31 @@ func createOrUpdateConversionCrdInValidatingWebhook(desc v1alpha1.WebhookDescrip
 		if err != nil {
 			log.Info("Crd not found %s, error: %s", desc.ConversionCrd, err.Error())
 		}
-		ctx := context.TODO()
-		log.Info("Sim found conv crd")
+
 		log.Info("Found conversionCrd %s", desc.ConversionCrd)
-		log.Info("Sim 1")
-		// path := "/convert"
-		log.Info("Sim 2")
-		crd.Spec.Conversion.Strategy = "Webhook"
-		log.Info("Sim 3")
-		//crd.Spec.Conversion.Webhook.ClientConfig.CABundle = webhook.Webhooks[0].ClientConfig.CABundle
-		log.Info("Sim 4")
-		//crd.Spec.Conversion.Webhook.ClientConfig.Service.Name = webhook.Webhooks[0].ClientConfig.Service.Name
-		log.Info("Sim 5")
-		//crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace = webhook.Webhooks[0].ClientConfig.Service.Namespace
-		log.Info("Sim 6")
-		// crd.Spec.Conversion.Webhook.ClientConfig.Service.Path = &path
-		log.Info("Sim 7")
-		//crd.Spec.PreserveUnknownFields = false
-		log.Info("Sim 8")
-		if _, err := i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(ctx, crd, metav1.UpdateOptions{}); err != nil {
+
+		path := "/convert"
+
+		crd = &apiextensionsv1.CustomResourceDefinition{
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Conversion: &apiextensionsv1.CustomResourceConversion{
+					Strategy: "Webhook",
+					Webhook: &apiextensionsv1.WebhookConversion{
+						ClientConfig: &apiextensionsv1.WebhookClientConfig{
+							Service: &apiextensionsv1.ServiceReference{
+								Namespace: webhook.Webhooks[0].ClientConfig.Service.Namespace,
+								Name:      webhook.Webhooks[0].ClientConfig.Service.Name,
+								Path:      &path,
+								Port:      webhook.Webhooks[0].ClientConfig.Service.Port,
+							},
+							CABundle: webhook.Webhooks[0].ClientConfig.CABundle,
+						},
+					},
+				},
+				PreserveUnknownFields: false,
+			},
+		}
+		if _, err = i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), crd, metav1.UpdateOptions{}); err != nil {
 			log.Info("Crd %s could not be updated, error: %s", desc.ConversionCrd, err.Error())
 		}
 	} else {
