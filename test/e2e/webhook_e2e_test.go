@@ -11,13 +11,16 @@ import (
 	"github.com/stretchr/testify/require"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
 	v1 "github.com/operator-framework/api/pkg/operators/v1"
 	"github.com/operator-framework/api/pkg/operators/v1alpha1"
+	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	"github.com/operator-framework/operator-lifecycle-manager/pkg/controller/install"
+	"github.com/operator-framework/operator-lifecycle-manager/pkg/controller/registry"
 	"github.com/operator-framework/operator-lifecycle-manager/pkg/lib/operatorclient"
 )
 
@@ -540,124 +543,124 @@ var _ = FDescribe("CSVs with a Webhook", func() {
 		}
 		Expect(count).Should(Equal(2))
 	})
-	// When("WebhookDescription has conversionCrd field", func() {
-	// 	var cleanupCSV cleanupFunc
-	// 	BeforeEach(func() {
-	// 		og := newOperatorGroup(namespace.Name, genName("global-og-"), nil, nil, []string{}, false)
-	// 		og, err := crc.OperatorsV1().OperatorGroups(namespace.Name).Create(context.TODO(), og, metav1.CreateOptions{})
-	// 		Expect(err).Should(BeNil())
-	// 	})
-	// 	AfterEach(func() {
-	// 		if cleanupCSV != nil {
-	// 			cleanupCSV()
-	// 		}
-	// 	})
-	// 	It("The conversion crd is updated via webhook", func() {
-	// 		// crd that would be present on cluster
-	// 		c := newKubeClient()
-	// 		crc := newCRClient()
+	When("WebhookDescription has conversionCrd field", func() {
+		var cleanupCSV cleanupFunc
+		BeforeEach(func() {
+			og := newOperatorGroup(namespace.Name, genName("global-og-"), nil, nil, []string{}, false)
+			og, err := crc.OperatorsV1().OperatorGroups(namespace.Name).Create(context.TODO(), og, metav1.CreateOptions{})
+			Expect(err).Should(BeNil())
+		})
+		AfterEach(func() {
+			if cleanupCSV != nil {
+				cleanupCSV()
+			}
+		})
+		It("The conversion crd is updated via webhook", func() {
+			// crd that would be present on cluster
+			c := newKubeClient()
+			crc := newCRClient()
 
-	// 		mainPackageName := genName("nginx-update2-")
-	// 		mainPackageStable := fmt.Sprintf("%s-stable", mainPackageName)
-	// 		stableChannel := "stable"
-	// 		// mainNamedStrategy := newNginxInstallStrategy(genName("dep-"), nil, nil)
+			mainPackageName := genName("nginx-update2-")
+			mainPackageStable := fmt.Sprintf("%s-stable", mainPackageName)
+			stableChannel := "stable"
+			// mainNamedStrategy := newNginxInstallStrategy(genName("dep-"), nil, nil)
 
-	// 		crdPlural := genName("ins")
-	// 		crdName := crdPlural + ".cluster.com"
-	// 		crdGroup := "cluster.com"
+			crdPlural := genName("ins")
+			crdName := crdPlural + ".cluster.com"
+			crdGroup := "cluster.com"
 
-	// 		crd := apiextensionsv1.CustomResourceDefinition{
-	// 			ObjectMeta: metav1.ObjectMeta{
-	// 				Name: crdName,
-	// 			},
-	// 			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-	// 				Group: crdGroup,
-	// 				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-	// 					{
-	// 						Name:    "v1alpha1",
-	// 						Served:  true,
-	// 						Storage: true,
-	// 						Schema: &apiextensionsv1.CustomResourceValidation{
-	// 							OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
-	// 								Type:        "object",
-	// 								Description: "my crd schema",
-	// 							},
-	// 						},
-	// 					},
-	// 					{
-	// 						Name:    "v1alpha2",
-	// 						Served:  true,
-	// 						Storage: false,
-	// 						Schema: &apiextensionsv1.CustomResourceValidation{
-	// 							OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
-	// 								Type:        "object",
-	// 								Description: "my crd schema",
-	// 							},
-	// 						},
-	// 					},
-	// 				},
-	// 				Names: apiextensionsv1.CustomResourceDefinitionNames{
-	// 					Plural:   crdPlural,
-	// 					Singular: crdPlural,
-	// 					Kind:     crdPlural,
-	// 					ListKind: "list" + crdPlural,
-	// 				},
-	// 				PreserveUnknownFields: false,
-	// 			},
-	// 			Status: apiextensionsv1.CustomResourceDefinitionStatus{
-	// 				StoredVersions: []string{"v1alpha1", "v1alpha2"},
-	// 			},
-	// 		}
+			crd := apiextensionsv1.CustomResourceDefinition{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: crdName,
+				},
+				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+					Group: crdGroup,
+					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+						{
+							Name:    "v1alpha1",
+							Served:  true,
+							Storage: true,
+							Schema: &apiextensionsv1.CustomResourceValidation{
+								OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+									Type:        "object",
+									Description: "my crd schema",
+								},
+							},
+						},
+						{
+							Name:    "v1alpha2",
+							Served:  true,
+							Storage: false,
+							Schema: &apiextensionsv1.CustomResourceValidation{
+								OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+									Type:        "object",
+									Description: "my crd schema",
+								},
+							},
+						},
+					},
+					Names: apiextensionsv1.CustomResourceDefinitionNames{
+						Plural:   crdPlural,
+						Singular: crdPlural,
+						Kind:     crdPlural,
+						ListKind: "list" + crdPlural,
+					},
+					PreserveUnknownFields: false,
+				},
+				Status: apiextensionsv1.CustomResourceDefinitionStatus{
+					StoredVersions: []string{"v1alpha1", "v1alpha2"},
+				},
+			}
 
-	// 		// crd that would be updated by the webhook
-	// 		// correct crd which is used to match if updated on-cluster crd has right fields set
-	// 		sideEffect := admissionregistrationv1.SideEffectClassNone
-	// 		webhook := v1alpha1.WebhookDescription{
-	// 			GenerateName:            webhookName,
-	// 			Type:                    v1alpha1.ValidatingAdmissionWebhook,
-	// 			DeploymentName:          genName("webhook-dep-"),
-	// 			ContainerPort:           443,
-	// 			AdmissionReviewVersions: []string{"v1beta1", "v1"},
-	// 			SideEffects:             &sideEffect,
-	// 			ConversionCrd:           "testConversionCrd",
-	// 		}
+			// crd that would be updated by the webhook
+			// correct crd which is used to match if updated on-cluster crd has right fields set
+			sideEffect := admissionregistrationv1.SideEffectClassNone
+			webhook := v1alpha1.WebhookDescription{
+				GenerateName:            webhookName,
+				Type:                    v1alpha1.ValidatingAdmissionWebhook,
+				DeploymentName:          genName("webhook-dep-"),
+				ContainerPort:           443,
+				AdmissionReviewVersions: []string{"v1beta1", "v1"},
+				SideEffects:             &sideEffect,
+				ConversionCrd:           "testConversionCrd",
+			}
 
-	// 		csv := createCSVWithWebhook(namespace.GetName(), webhook)
+			csv := createCSVWithWebhook(namespace.GetName(), webhook)
 
-	// 		// mainCSV := newCSV(mainPackageStable, testNamespace, "", semver.MustParse("0.1.0"), nil, nil, mainNamedStrategy)
-	// 		mainCatalogName := genName("mock-ocs-main-update2-")
-	// 		mainManifests := []registry.PackageManifest{
-	// 			{
-	// 				PackageName: mainPackageName,
-	// 				Channels: []registry.PackageChannel{
-	// 					{Name: stableChannel, CurrentCSVName: mainPackageStable},
-	// 				},
-	// 				DefaultChannelName: stableChannel,
-	// 			},
-	// 		}
+			// mainCSV := newCSV(mainPackageStable, testNamespace, "", semver.MustParse("0.1.0"), nil, nil, mainNamedStrategy)
+			mainCatalogName := genName("mock-ocs-main-update2-")
+			mainManifests := []registry.PackageManifest{
+				{
+					PackageName: mainPackageName,
+					Channels: []registry.PackageChannel{
+						{Name: stableChannel, CurrentCSVName: mainPackageStable},
+					},
+					DefaultChannelName: stableChannel,
+				},
+			}
 
-	// 		// Create the catalog sources
-	// 		_, cleanupMainCatalogSource := createV1CRDInternalCatalogSource(GinkgoT(), c, crc, mainCatalogName, testNamespace, mainManifests, []apiextensionsv1.CustomResourceDefinition{crd}, []operatorsv1alpha1.ClusterServiceVersion{csv})
-	// 		defer cleanupMainCatalogSource()
+			// Create the catalog sources
+			_, cleanupMainCatalogSource := createV1CRDInternalCatalogSource(GinkgoT(), c, crc, mainCatalogName, testNamespace, mainManifests, []apiextensionsv1.CustomResourceDefinition{crd}, []operatorsv1alpha1.ClusterServiceVersion{csv})
+			defer cleanupMainCatalogSource()
 
-	// 		var err error
-	// 		cleanupCSV, err = createCSV(c, crc, csv, namespace.Name, false, false)
-	// 		Expect(err).Should(BeNil())
+			var err error
+			cleanupCSV, err = createCSV(c, crc, csv, namespace.Name, false, false)
+			Expect(err).Should(BeNil())
 
-	// 		_, err = fetchCSV(crc, csv.Name, namespace.Name, csvSucceededChecker)
-	// 		Expect(err).Should(BeNil())
-	// 		// actualWebhook, err := getWebhookWithGenerateName(c, webhook.GenerateName)
-	// 		// Expect(err).Should(BeNil())
+			_, err = fetchCSV(crc, csv.Name, namespace.Name, csvSucceededChecker)
+			Expect(err).Should(BeNil())
+			// actualWebhook, err := getWebhookWithGenerateName(c, webhook.GenerateName)
+			// Expect(err).Should(BeNil())
 
-	// 		// expected := &metav1.LabelSelector{
-	// 		// 	MatchLabels:      map[string]string(nil),
-	// 		// 	MatchExpressions: []metav1.LabelSelectorRequirement(nil),
-	// 		// }
+			// expected := &metav1.LabelSelector{
+			// 	MatchLabels:      map[string]string(nil),
+			// 	MatchExpressions: []metav1.LabelSelectorRequirement(nil),
+			// }
 
-	// 		expectedStrategy := "Webhook"
-	// 		Expect(crd.Spec.Conversion.Strategy).Should(Equal(expectedStrategy))
-	// 	})
-	// })
+			expectedStrategy := "Webhook"
+			Expect(crd.Spec.Conversion.Strategy).Should(Equal(expectedStrategy))
+		})
+	})
 })
 
 func getWebhookWithGenerateName(c operatorclient.ClientInterface, generateName string) (*admissionregistrationv1.ValidatingWebhookConfiguration, error) {
