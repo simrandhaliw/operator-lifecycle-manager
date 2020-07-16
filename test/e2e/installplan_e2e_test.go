@@ -2623,7 +2623,7 @@ var _ = Describe("Install Plan", func() {
 		require.NoError(GinkgoT(), err)
 		require.Equal(GinkgoT(), 1, len(ips.Items), "If this test fails it should be taken seriously and not treated as a flake. \n%v", ips.Items)
 	})
-	
+
 	It("without an operatorgroup", func() {
 		defer cleaner.NotifyTestComplete(true)
 

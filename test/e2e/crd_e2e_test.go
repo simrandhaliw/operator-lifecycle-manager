@@ -135,7 +135,7 @@ var _ = Describe("CRD Versions", func() {
 				},
 			},
 		}
-
+		//
 		mainCSV := newCSV(mainPackageStable, testNamespace, "", semver.MustParse("0.1.0"), nil, nil, mainNamedStrategy)
 		mainCatalogName := genName("mock-ocs-main-update2-")
 		mainManifests := []registry.PackageManifest{
