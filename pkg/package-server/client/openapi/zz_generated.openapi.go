@@ -709,10 +709,17 @@ func schema_api_pkg_operators_v1alpha1_WebhookDescription(ref common.ReferenceCa
 							Format: "",
 						},
 					},
-					"conversionCrd": {
+					"conversionCrds": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
 						},
 					},
 				},

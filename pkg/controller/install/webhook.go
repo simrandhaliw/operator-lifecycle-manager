@@ -10,7 +10,6 @@ import (
 	"github.com/operator-framework/operator-lifecycle-manager/pkg/lib/ownerutil"
 	log "github.com/sirupsen/logrus"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -129,44 +128,44 @@ func (i *StrategyDeploymentInstaller) createOrUpdateMutatingWebhook(ogNamespacel
 
 func createOrUpdateConversionCrd(desc v1alpha1.WebhookDescription, clientConfig admissionregistrationv1.WebhookClientConfig, i *StrategyDeploymentInstaller) error {
 	// check if webhook has ConversionCrd field set, if true get crd of cluster and configure to use webhook effectively
-	if desc.ConversionCrd != "" {
-		crd, err := i.strategyClient.GetOpLister().APIExtensionsV1().CustomResourceDefinitionLister().Get(desc.ConversionCrd)
-		if err != nil {
-			log.Info("Crd not found %s, error: %s", desc.ConversionCrd, err.Error())
-		}
+	// if desc.ConversionCrd != "" {
+	// 	crd, err := i.strategyClient.GetOpLister().APIExtensionsV1().CustomResourceDefinitionLister().Get(desc.ConversionCrd)
+	// 	if err != nil {
+	// 		log.Info("Crd not found %s, error: %s", desc.ConversionCrd, err.Error())
+	// 	}
 
-		log.Info("Found conversionCrd %s", desc.ConversionCrd)
+	// 	log.Info("Found conversionCrd %s", desc.ConversionCrd)
 
-		path := "/convert"
+	// 	path := "/convert"
 
-		if crd.Spec.PreserveUnknownFields == true {
-			log.Info("crd.Spec.PreserveUnknownFields must be false to let API Server call webhook to do the conversion.")
-		} else {
-			log.Info("updating crd")
-			crd.Spec.Conversion = &apiextensionsv1.CustomResourceConversion{
-				Strategy: "Webhook",
-				Webhook: &apiextensionsv1.WebhookConversion{
-					ClientConfig: &apiextensionsv1.WebhookClientConfig{
-						Service: &apiextensionsv1.ServiceReference{
-							Namespace: clientConfig.Service.Namespace,
-							Name:      clientConfig.Service.Name,
-							Path:      &path,
-							Port:      clientConfig.Service.Port,
-						},
-						CABundle: clientConfig.CABundle,
-					},
-					ConversionReviewVersions: desc.AdmissionReviewVersions,
-				},
-			}
-		}
+	// 	if crd.Spec.PreserveUnknownFields == true {
+	// 		log.Info("crd.Spec.PreserveUnknownFields must be false to let API Server call webhook to do the conversion.")
+	// 	} else {
+	// 		log.Info("updating crd")
+	// 		crd.Spec.Conversion = &apiextensionsv1.CustomResourceConversion{
+	// 			Strategy: "Webhook",
+	// 			Webhook: &apiextensionsv1.WebhookConversion{
+	// 				ClientConfig: &apiextensionsv1.WebhookClientConfig{
+	// 					Service: &apiextensionsv1.ServiceReference{
+	// 						Namespace: clientConfig.Service.Namespace,
+	// 						Name:      clientConfig.Service.Name,
+	// 						Path:      &path,
+	// 						Port:      clientConfig.Service.Port,
+	// 					},
+	// 					CABundle: clientConfig.CABundle,
+	// 				},
+	// 				ConversionReviewVersions: desc.AdmissionReviewVersions,
+	// 			},
+	// 		}
+	// 	}
 
-		if _, err = i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), crd, metav1.UpdateOptions{}); err != nil {
-			log.Info("Crd %s could not be updated, error: %s", desc.ConversionCrd, err.Error())
-		}
+	// 	if _, err = i.strategyClient.GetOpClient().ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), crd, metav1.UpdateOptions{}); err != nil {
+	// 		log.Info("Crd %s could not be updated, error: %s", desc.ConversionCrd, err.Error())
+	// 	}
 
-	} else {
-		log.Info("conversionCrd not found")
-	}
+	// } else {
+	// 	log.Info("conversionCrd not found")
+	// }
 	return nil
 }
 

@@ -8828,8 +8828,10 @@ spec:
                       - MutatingAdmissionWebhook
                     webhookPath:
                       type: string
-                    conversionCrd:
-                      type: string  
+                    conversionCrds:
+                      type: array
+                      items:
+                        type: string
           status:
             description: ClusterServiceVersionStatus represents information about
               the status of a pod. Status may trail the actual state of a system.
