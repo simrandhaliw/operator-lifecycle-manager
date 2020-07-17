@@ -555,7 +555,7 @@ var _ = FDescribe("CSVs with a Webhook", func() {
 		})
 		It("The conversion crd is updated via webhook", func() {
 			mainCRDPlural := genName("opgroup")
-			mainCRD := newV1CRDWithPreserveUnknownFields(mainCRDPlural)
+			mainCRD := newV1CRD(mainCRDPlural)
 			cleanupCRD, er := createV1CRD(c, mainCRD)
 			require.NoError(GinkgoT(), er)
 			defer cleanupCRD()
@@ -568,6 +568,7 @@ var _ = FDescribe("CSVs with a Webhook", func() {
 				ContainerPort:           443,
 				AdmissionReviewVersions: []string{"v1beta1", "v1"},
 				SideEffects:             &sideEffect,
+				ConversionCrd:           mainCRD.GetName(),
 			}
 
 			csv := createCSVWithWebhook(namespace.GetName(), webhook)
@@ -586,8 +587,13 @@ var _ = FDescribe("CSVs with a Webhook", func() {
 				MatchExpressions: []metav1.LabelSelectorRequirement(nil),
 			}
 			Expect(actualWebhook.Webhooks[0].NamespaceSelector).Should(Equal(expected))
+
+			// expectedUpdatedCrdFields := &apiextensionsv1.CustomResourceConversion{
+			// 	Strategy: "Webhook",
+			// }
+
 			// expectedStrategy := "Webhook"
-			// Expect(mainCRD.Spec.Conversion.Strategy).Should(Equal(expectedStrategy))
+			// Expect(mainCRD.Spec.Conversion.Strategy).Should(Equal(expectedUpdatedCrdFields.Strategy))
 
 			// time.Sleep(10 * time.Minute)
 
@@ -595,7 +601,7 @@ var _ = FDescribe("CSVs with a Webhook", func() {
 	})
 })
 
-func newV1CRDWithPreserveUnknownFields(plural string) apiextensionsv1.CustomResourceDefinition {
+func newV1CRD(plural string) apiextensionsv1.CustomResourceDefinition {
 	crd := apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: plural + ".cluster.com",
