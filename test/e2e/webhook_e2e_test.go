@@ -554,12 +554,14 @@ var _ = FDescribe("CSVs with a Webhook", func() {
 			}
 		})
 		It("The conversion crd is updated via webhook", func() {
+			// create CRD
 			mainCRDPlural := genName("opgroup")
 			mainCRD := newV1CRD(mainCRDPlural)
 			cleanupCRD, er := createV1CRD(c, mainCRD)
 			require.NoError(GinkgoT(), er)
 			defer cleanupCRD()
 
+			// describe webhook
 			sideEffect := admissionregistrationv1.SideEffectClassNone
 			webhook := v1alpha1.WebhookDescription{
 				GenerateName:            webhookName,
@@ -571,6 +573,7 @@ var _ = FDescribe("CSVs with a Webhook", func() {
 				ConversionCrd:           mainCRD.GetName(),
 			}
 
+			// create csv
 			csv := createCSVWithWebhook(namespace.GetName(), webhook)
 
 			var err error
@@ -592,7 +595,7 @@ var _ = FDescribe("CSVs with a Webhook", func() {
 				Strategy: "Webhook",
 			}
 
-			// Read the updated on cluster mainCRD into following crd
+			// Read the updated mainCRD on cluster into the following crd
 			crd, err := c.ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), mainCRD.GetName(), metav1.GetOptions{})
 
 			Expect(crd.Spec.Conversion.Strategy).Should(Equal(expectedUpdatedCrdFields.Strategy))
