@@ -588,14 +588,14 @@ var _ = FDescribe("CSVs with a Webhook", func() {
 			}
 			Expect(actualWebhook.Webhooks[0].NamespaceSelector).Should(Equal(expected))
 
-			// expectedUpdatedCrdFields := &apiextensionsv1.CustomResourceConversion{
-			// 	Strategy: "Webhook",
-			// }
+			expectedUpdatedCrdFields := &apiextensionsv1.CustomResourceConversion{
+				Strategy: "Webhook",
+			}
 
-			// expectedStrategy := "Webhook"
-			// Expect(mainCRD.Spec.Conversion.Strategy).Should(Equal(expectedUpdatedCrdFields.Strategy))
+			// Read the updated on cluster mainCRD into following crd
+			crd, err := c.ApiextensionsInterface().ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), mainCRD.GetName(), metav1.GetOptions{})
 
-			// time.Sleep(10 * time.Minute)
+			Expect(crd.Spec.Conversion.Strategy).Should(Equal(expectedUpdatedCrdFields.Strategy))
 
 		})
 	})
